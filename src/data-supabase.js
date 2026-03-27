@@ -23,17 +23,28 @@ export const loadDataFromSupabase = async () => {
   };
 };
 
-export const saveStudentToSupabase = async (student) => {
-  const { data, error } = await supabase
-    .from('students')
-    .upsert([student])
-    .select();
-
-  if (error) {
-    console.error('Lỗi khi lưu học sinh:', error.message);
-    return null;
+export const syncTableToSupabase = async (tableName, tableData) => {
+  try {
+    // 1. Lấy danh sách ID hiện tại trên Supabase để tìm các dòng đã bị xóa
+    const { data: currentData } = await supabase.from(tableName).select('id');
+    const currentIds = currentData ? currentData.map(d => String(d.id)) : [];
+    const incomingIds = tableData.map(d => String(d.id));
+    
+    const toDelete = currentIds.filter(id => !incomingIds.includes(id));
+    
+    // 2. Xóa các dữ liệu tương ứng khỏi Supabase nếu nó đã bị xóa ở ứng dụng
+    if (toDelete.length > 0) {
+      await supabase.from(tableName).delete().in('id', toDelete);
+    }
+    
+    // 3. Upsert (Thêm hoặc Cập nhật) tất cả dữ liệu gốc
+    if (tableData.length > 0) {
+      const { error } = await supabase.from(tableName).upsert(tableData);
+      if (error) {
+        console.error(`Lỗi ghi dữ liệu bảng ${tableName}:`, error.message);
+      }
+    }
+  } catch (err) {
+    console.error(`Đã xảy ra lỗi đồng bộ bảng ${tableName}:`, err.message);
   }
-  return data[0];
 };
-
-// Tương tự cho các bảng khác...

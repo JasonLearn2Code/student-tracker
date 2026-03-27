@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { loadData, saveData } from './data';
-import { loadDataFromSupabase } from './data-supabase';
+import { loadDataFromSupabase, syncTableToSupabase } from './data-supabase';
 import StudentView from './components/StudentView';
 import GroupView from './components/GroupView';
 import ReportView from './components/ReportView';
@@ -34,6 +34,13 @@ function App() {
     setData(updatedData);
     // Khi có thay đổi, ta có thể lưu vào localStorage như một bản backup
     saveData(updatedData);
+
+    // Lưu các bảng được cập nhật lên Supabase
+    for (const key of Object.keys(newData)) {
+      if (Array.isArray(newData[key])) {
+        await syncTableToSupabase(key, newData[key]);
+      }
+    }
   };
 
   return (
