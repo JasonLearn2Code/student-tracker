@@ -1,8 +1,8 @@
 export const INITIAL_DATA = {
   students: [
-    { id: '1', name: 'Nguyễn Văn A', birthYear: '1995', groupId: 'G1', joinDate: '2024-03-01', helperId: null },
-    { id: '2', name: 'Thị B', birthYear: '1998', groupId: 'G1', joinDate: '2024-03-05', helperId: '1' },
-    { id: '3', name: 'Lê Văn C', birthYear: '2000', groupId: 'G2', joinDate: '2024-03-10', helperId: '1' },
+    { id: '11111111-1111-1111-1111-111111111111', name: 'Nguyễn Văn A', birthYear: '1995', groupId: 'G1', joinDate: '2024-03-01', helperId: null },
+    { id: '22222222-2222-2222-2222-222222222222', name: 'Thị B', birthYear: '1998', groupId: 'G1', joinDate: '2024-03-05', helperId: '11111111-1111-1111-1111-111111111111' },
+    { id: '33333333-3333-3333-3333-333333333333', name: 'Lê Văn C', birthYear: '2000', groupId: 'G2', joinDate: '2024-03-10', helperId: '11111111-1111-1111-1111-111111111111' },
   ],
   groups: [
     { id: 'G1', name: 'Nhóm Sáng Thứ 2', courseName: 'Web Development Basics' },
@@ -23,8 +23,8 @@ export const INITIAL_DATA = {
     { id: 'S2', groupId: 'G1', date: '2024-03-17', teacherId: 'T2', topic: 'CSS Cơ bản', masterId: 'M2' },
   ],
   attendance: [
-    { id: 'A1', sessionId: 'S1', studentId: '1', status: 'present', notes: 'Tiếp thu tốt' },
-    { id: 'A2', sessionId: 'S1', studentId: '2', status: 'absent', notes: 'Có phép' },
+    { id: 'A1', sessionId: 'S1', studentId: '11111111-1111-1111-1111-111111111111', status: 'present', notes: 'Tiếp thu tốt' },
+    { id: 'A2', sessionId: 'S1', studentId: '22222222-2222-2222-2222-222222222222', status: 'absent', notes: 'Có phép' },
   ]
 };
 

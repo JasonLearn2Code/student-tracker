@@ -9,7 +9,7 @@ function StudentView({ students, groups, sessions, attendance, onUpdate }) {
 
   const handleAdd = (e) => {
     e.preventDefault();
-    const id = Date.now().toString();
+    const id = self.crypto.randomUUID();
     const updated = [...students, { ...newStudent, id, joinDate: new Date().toISOString().split('T')[0] }];
     onUpdate(updated);
     setIsAdding(false);
