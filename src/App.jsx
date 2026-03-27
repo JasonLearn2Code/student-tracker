@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { loadData, saveData } from './data';
+import { loadDataFromSupabase } from './data-supabase';
 import StudentView from './components/StudentView';
 import GroupView from './components/GroupView';
 import ReportView from './components/ReportView';
@@ -9,22 +10,37 @@ import TeacherView from './components/TeacherView';
 import './index.css';
 
 function App() {
-  const [data, setData] = useState(loadData());
+  const [data, setData] = useState(null);
   const [activeTab, setActiveTab] = useState('students');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    saveData(data);
-  }, [data]);
+    const fetchData = async () => {
+      setLoading(true);
+      const result = await loadDataFromSupabase();
+      if (result) {
+        setData(result);
+      } else {
+        // Dự phòng nếu Supabase lỗi hoặc chưa có dữ liệu
+        setData(loadData());
+      }
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
 
-  const updateData = (newData) => {
-    setData({ ...data, ...newData });
+  const updateData = async (newData) => {
+    const updatedData = { ...data, ...newData };
+    setData(updatedData);
+    // Khi có thay đổi, ta có thể lưu vào localStorage như một bản backup
+    saveData(updatedData);
   };
 
   return (
     <div className="app">
       <nav>
         <div className="logo" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-          🎓 StudentTracker
+          🎓 StudentTracker {loading ? '(Đang tải...)' : ''}
         </div>
         <div className="nav-links">
           <span 
@@ -70,7 +86,11 @@ function App() {
       </nav>
 
       <main className="container">
-        {activeTab === 'students' && (
+        {loading || !data ? (
+          <div className="loading-container">Đang kết nối tới Supabase...</div>
+        ) : (
+          <>
+            {activeTab === 'students' && (
           <StudentView 
             students={data.students} 
             groups={data.groups}
@@ -114,6 +134,8 @@ function App() {
             sessions={data.sessions}
             attendance={data.attendance}
           />
+        )}
+          </>
         )}
       </main>
     </div>
