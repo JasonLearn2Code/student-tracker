@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 function GroupView({ groups = [], students = [], sessions = [], attendance = [], masterData = [], teachers = [], onUpdate }) {
   const [selectedGroup, setSelectedGroup] = useState(groups[0]?.id || null);
   const [isMarking, setIsMarking] = useState(false);
+  const [markingStep, setMarkingStep] = useState('review');
   const [isEditing, setIsEditing] = useState(false);
   const [isAddingGroup, setIsAddingGroup] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -15,12 +16,13 @@ function GroupView({ groups = [], students = [], sessions = [], attendance = [],
 
   const handleStartSession = () => {
     setIsMarking(true);
-    setTempAttendance(groupStudents.reduce((acc, s) => ({ ...acc, [s.id]: { status: 'present', notes: '' } }), {}));
+    setMarkingStep('review');
+    setTempAttendance(groupStudents.reduce((acc, s) => ({ ...acc, [s.id]: { status: 'present', notes: '', progressLevel: 3 } }), {}));
   };
 
   const handleSaveAttendance = (e) => {
     e.preventDefault();
-    const sessionId = 'S' + Date.now();
+    const sessionId = 'S' + self.crypto.randomUUID();
     const masterTopic = masterData.find(m => m.id === newSession.masterId)?.topic || 'Không rõ';
     const sessionObj = { ...newSession, id: sessionId, topic: masterTopic, groupId: selectedGroup };
     
@@ -46,6 +48,14 @@ function GroupView({ groups = [], students = [], sessions = [], attendance = [],
       const student = students.find(s => s.id === a.studentId);
       return { ...a, studentName: student?.name || 'N/A' };
     });
+  };
+
+  const getProgressBadge = (level) => {
+    if (level === null || level === undefined) return null;
+    const n = Number(level);
+    if (n >= 4) return { text: 'Tốt', class: 'badge-success' };
+    if (n === 3) return { text: 'Khá', class: 'badge-warning' };
+    return { text: 'Cần cải thiện', class: 'badge-danger' };
   };
 
   const handleSaveSessionEdit = (e) => {
@@ -80,7 +90,7 @@ function GroupView({ groups = [], students = [], sessions = [], attendance = [],
           <h1>Nhóm Học</h1>
         </div>
         <div style={{ flex: '0 0 450px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <select style={{ flex: '1', marginBottom: 0 }} value={selectedGroup || ''} onChange={e => setSelectedGroup(e.target.value)}>
+          <select disabled={isMarking} style={{ flex: '1', marginBottom: 0 }} value={selectedGroup || ''} onChange={e => setSelectedGroup(e.target.value)}>
             <option value="" disabled>-- Chọn nhóm --</option>
             {groups.map(g => (
               <option key={g.id} value={g.id}>{g.name}</option>
@@ -94,7 +104,7 @@ function GroupView({ groups = [], students = [], sessions = [], attendance = [],
         <div style={{ flex: '1' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2>Lộ trình & Buổi học</h2>
-            <button className="btn btn-primary" onClick={handleStartSession}>+ Điểm danh buổi mới</button>
+            <button className="btn btn-primary" onClick={handleStartSession} disabled={groupStudents.length === 0}>+ Điểm danh buổi mới</button>
           </div>
 
           <div className="grid">
@@ -178,23 +188,48 @@ function GroupView({ groups = [], students = [], sessions = [], attendance = [],
 
             <h3>Danh sách điểm danh</h3>
             <div style={{ maxHeight: '40vh', overflowY: 'auto' }}>
-              {getSessionAttendance(selectedSession.id).map((record, idx) => (
-                <div key={idx} className="glass-card" style={{ marginBottom: '12px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>{record.studentName}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {record.notes && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>({record.notes})</span>}
-                    <span className={`badge ${record.status === 'present' ? 'badge-success' : 'badge-danger'}`}>
-                      {record.status === 'present' ? 'Tham gia' : 'Vắng'}
-                    </span>
-                  </div>
-                </div>
-              ))}
+              {getSessionAttendance(selectedSession.id).map((record, idx) => {
+                  const progressBadge = getProgressBadge(record.progressLevel);
+                  return (
+                    <div key={idx} className="glass-card" style={{ marginBottom: '12px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{record.studentName}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {record.notes && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>({record.notes})</span>}
+                        {progressBadge && <span className={`badge ${progressBadge.class}`}>{progressBadge.text}</span>}
+                        <span className={`badge ${record.status === 'present' ? 'badge-success' : 'badge-danger'}`}>
+                          {record.status === 'present' ? 'Tham gia' : 'Vắng'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           </div>
         </div>
       )}
 
-      {isMarking && (
+      {isMarking && markingStep === 'review' && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-card" style={{ maxWidth: '600px' }}>
+            <h2>Danh sách học viên</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Kiểm tra danh sách trước khi điểm danh</p>
+            <div style={{ maxHeight: '50vh', overflowY: 'auto', marginBottom: '24px' }}>
+              {groupStudents.map(student => (
+                <div key={student.id} className="glass-card" style={{ marginBottom: '12px', padding: '12px' }}>
+                  {student.name}
+                </div>
+              ))}
+              {groupStudents.length === 0 && <p style={{ color: 'var(--text-muted)' }}>Chưa có học viên nào trong nhóm.</p>}
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn btn-primary" onClick={() => setMarkingStep('form')}>Bắt đầu điểm danh</button>
+              <button className="btn btn-ghost" onClick={() => setIsMarking(false)}>Hủy</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isMarking && markingStep === 'form' && (
         <div className="modal-overlay">
           <div className="modal-content glass-card" style={{ maxWidth: '800px' }}>
             <h2>Ghi nhận buổi học mới</h2>
@@ -229,6 +264,12 @@ function GroupView({ groups = [], students = [], sessions = [], attendance = [],
               </div>
 
               <h3>Điểm danh & Đánh giá</h3>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>
+                <div style={{ flex: '1' }}>Học viên</div>
+                <div style={{ flex: '1' }}>Điểm danh</div>
+                <div style={{ flex: '1' }}>Tiến bộ</div>
+                <div style={{ flex: '2' }}>Nhận xét</div>
+              </div>
               <div style={{ maxHeight: '40vh', overflowY: 'auto', marginBottom: '24px' }}>
                 {groupStudents.map(student => (
                   <div key={student.id} className="glass-card" style={{ marginBottom: '12px', background: 'rgba(255,255,255,0.03)' }}>
@@ -247,10 +288,26 @@ function GroupView({ groups = [], students = [], sessions = [], attendance = [],
                           <option value="absent">Vắng</option>
                         </select>
                       </div>
+                      <div style={{ flex: '1' }}>
+                        <select
+                          style={{ marginBottom: 0 }}
+                          value={tempAttendance[student.id]?.progressLevel || 3}
+                          onChange={e => setTempAttendance({
+                            ...tempAttendance,
+                            [student.id]: { ...tempAttendance[student.id], progressLevel: Number(e.target.value) }
+                          })}
+                        >
+                          <option value={1}>1 - Cần cải thiện</option>
+                          <option value={2}>2 - Cần cải thiện</option>
+                          <option value={3}>3 - Khá</option>
+                          <option value={4}>4 - Tốt</option>
+                          <option value={5}>5 - Tốt</option>
+                        </select>
+                      </div>
                       <div style={{ flex: '2' }}>
                         <input 
                           style={{ marginBottom: 0 }}
-                          placeholder="Ghi chú đánh giá..." 
+                          placeholder="Nhận xét đánh giá..." 
                           value={tempAttendance[student.id]?.notes}
                           onChange={e => setTempAttendance({
                             ...tempAttendance,
@@ -265,6 +322,7 @@ function GroupView({ groups = [], students = [], sessions = [], attendance = [],
 
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button type="submit" className="btn btn-primary">Lưu buổi học</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setMarkingStep('review')}>Quay lại</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setIsMarking(false)}>Hủy</button>
               </div>
             </form>
